@@ -1,0 +1,11 @@
+{
+  "name": "octokit-playground",
+  "version": "0.0.1",
+  "description": "playground for the github api",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "UNLICENSED"
+}
