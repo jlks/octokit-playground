@@ -21,19 +21,26 @@ async function main (changes) {
       sha: base,
       per_page: 1
     })
+    const treeSha = response.data[0].commit.tree.sha
 
-    const path = 'package.json'
+    const nextVersion = '0.0.5'
+    var packagePath = 'package.json'
     var latestCommitSha = response.data[0].sha
 
-    const { data: { sha, content } } = await octokit.repos.getContents({ owner, repo, path })
-
+    var { data: { content } } = await octokit.repos.getContents({ owner, repo, path: packagePath })
     const packageData = JSON.parse(Buffer.from(content, 'base64').toString())
     console.log(packageData.version)
-    packageData.version = '0.0.2'
+    packageData.version = nextVersion
     // Do not need to base64 encode data like this!
     // path: base64 encodedcontent - not needed!
-    const newContent = Buffer.from(JSON.stringify(packageData, null, 2)).toString('base64')
-    const treeSha = response.data[0].commit.tree.sha
+    // const newContent = Buffer.from(JSON.stringify(packageData, null, 2)).toString('base64')
+
+    var packageLockPath = 'package-lock.json'
+
+    var { data: { content } } = await octokit.repos.getContents({ owner, repo, path: packageLockPath })
+    const packageLockData = JSON.parse(Buffer.from(content, 'base64').toString())
+    console.log(packageLockData.version)
+    packageLockData.version = nextVersion
 
 
     response = await octokit.git.createTree({
@@ -41,9 +48,13 @@ async function main (changes) {
       repo,
       base_tree: treeSha,
       tree: [{
-        path,
+        path: packagePath,
         mode: '100644',
         content: JSON.stringify(packageData, null, 2).concat('\n') 
+      }, {
+        path: packageLockPath,
+        mode: '100644',
+        content: JSON.stringify(packageLockData, null, 2).concat('\n')        
       }]
     })
     const newTreeSha = response.data.sha
