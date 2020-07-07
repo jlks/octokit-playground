@@ -22,7 +22,7 @@ async function main (changes) {
     })
     const treeSha = response.data[0].commit.tree.sha
 
-    const nextVersion = '0.0.6'
+    const nextVersion = '0.0.7'
     var packagePath = 'package.json'
     var latestCommitSha = response.data[0].sha
 
@@ -36,13 +36,12 @@ async function main (changes) {
 
 
     function updatePackageFileVersion(version, data) {
-      const packageLockData = JSON.parse(Buffer.from(content, 'base64').toString())
-      console.log(`old version: ${packageLockData.version}`)
-      packageLockData.version = nextVersion
-      console.log(`new version: ${packageLockData.version}`)
+      const packageData = JSON.parse(Buffer.from(data, 'base64').toString())
+      console.log(`old version: ${packageData.version}`)
+      packageData.version = version
+      console.log(`new version: ${packageData.version}`)
       return JSON.stringify(packageData, null, 2).concat('\n')
     }
-
 
     response = await octokit.git.createTree({
       owner,
@@ -85,5 +84,10 @@ async function main (changes) {
   console.log('updateRefResponse')
   console.log(JSON.stringify(response))
 }
+
+// Git data commands require the following:
+// Tree modification
+// A manual commit
+// A manual update to the reflog with the commit
 
 main().catch((error) => {console.log(error)});
