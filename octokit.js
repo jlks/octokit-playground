@@ -1,6 +1,11 @@
 const { Octokit } = require("@octokit/rest");
 const octokit = new Octokit({auth: process.env.GITHUB_TOKEN});
 
+
+    // Do not need to base64 encode data like this!
+    // path: base64 encodedcontent - not needed!
+    // const newContent = Buffer.from(JSON.stringify(packageData, null, 2)).toString('base64')
+
 async function main (changes) {
   const owner = 'jlks'
   const repo = 'playground-test-repo'
@@ -8,12 +13,6 @@ async function main (changes) {
   const head = 'master'
 
     let response
-
-    if (!base) {
-      response = await octokit.repos.get({ owner, repo })
-      // tslint:disable-next-line:no-parameter-reassignment
-      base = response.data.default_branch
-    }
   
     response = await octokit.repos.listCommits({
       owner,
@@ -23,24 +22,26 @@ async function main (changes) {
     })
     const treeSha = response.data[0].commit.tree.sha
 
-    const nextVersion = '0.0.5'
+    const nextVersion = '0.0.6'
     var packagePath = 'package.json'
     var latestCommitSha = response.data[0].sha
 
+    var packagePath = 'package.json'
     var { data: { content } } = await octokit.repos.getContents({ owner, repo, path: packagePath })
-    const packageData = JSON.parse(Buffer.from(content, 'base64').toString())
-    console.log(packageData.version)
-    packageData.version = nextVersion
-    // Do not need to base64 encode data like this!
-    // path: base64 encodedcontent - not needed!
-    // const newContent = Buffer.from(JSON.stringify(packageData, null, 2)).toString('base64')
+    var packageFileData = updatePackageFileVersion(nextVersion, content)
 
     var packageLockPath = 'package-lock.json'
-
     var { data: { content } } = await octokit.repos.getContents({ owner, repo, path: packageLockPath })
-    const packageLockData = JSON.parse(Buffer.from(content, 'base64').toString())
-    console.log(packageLockData.version)
-    packageLockData.version = nextVersion
+    var packageLockFileData = updatePackageFileVersion(nextVersion, content)
+
+
+    function updatePackageFileVersion(version, data) {
+      const packageLockData = JSON.parse(Buffer.from(content, 'base64').toString())
+      console.log(`old version: ${packageLockData.version}`)
+      packageLockData.version = nextVersion
+      console.log(`new version: ${packageLockData.version}`)
+      return JSON.stringify(packageData, null, 2).concat('\n')
+    }
 
 
     response = await octokit.git.createTree({
@@ -50,11 +51,11 @@ async function main (changes) {
       tree: [{
         path: packagePath,
         mode: '100644',
-        content: JSON.stringify(packageData, null, 2).concat('\n') 
+        content: packageFileData 
       }, {
         path: packageLockPath,
         mode: '100644',
-        content: JSON.stringify(packageLockData, null, 2).concat('\n')        
+        content: packageLockFileData       
       }]
     })
     const newTreeSha = response.data.sha
@@ -78,8 +79,7 @@ async function main (changes) {
     owner,
     repo,
     sha: latestCommitSha,
-    ref: `heads/${head}`,
-    force: true
+    ref: `heads/${head}`
   })
 
   console.log('updateRefResponse')
