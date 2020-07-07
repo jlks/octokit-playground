@@ -20,6 +20,8 @@ async function main (changes) {
       sha: base,
       per_page: 1
     })
+
+    // This'll be merge commit
     const treeSha = response.data[0].commit.tree.sha
 
     const nextVersion = '0.0.7'
@@ -43,6 +45,7 @@ async function main (changes) {
       return JSON.stringify(packageData, null, 2).concat('\n')
     }
 
+    // Create the tree in the index (git add...)
     response = await octokit.git.createTree({
       owner,
       repo,
@@ -62,6 +65,7 @@ async function main (changes) {
     console.log(JSON.stringify(response.data.sha, null, 2))
 
 
+    // Commit the Tree!
   response = await octokit.git.createCommit({
     owner,
     repo,
@@ -74,6 +78,7 @@ async function main (changes) {
 
   console.log(`New commit sha: ${latestCommitSha}`)
 
+  // Push the new commit to be the head of master
   response = await octokit.git.updateRef({
     owner,
     repo,
@@ -86,8 +91,8 @@ async function main (changes) {
 }
 
 // Git data commands require the following:
-// Tree modification
-// A manual commit
-// A manual update to the reflog with the commit
+// Tree modification (git internal index)
+// A manual commit 
+// A manual update to the reflog with the commit to the referenced branch
 
 main().catch((error) => {console.log(error)});
